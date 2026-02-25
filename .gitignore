@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Operating System
+.DS_Store
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Webots
+# .wbproj # Not ignoring by default, as existing project files might be tracked.
+
+# IDE/Editor
+.vscode/
+.idea/
+.ropeproject/
+
+# Logs and temporary files
+*.log
+*.tmp
