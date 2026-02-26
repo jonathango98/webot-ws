@@ -57,7 +57,7 @@ class IPRRobot:
         active_mask = [link.name in motor_names for link in base_chain.links]
         self.my_chain = ikpy.chain.Chain.from_urdf_file(self.urdf_path, active_links_mask=active_mask)
 
-    def step(self, key: int):
+    def step_key(self, key: int):
         # Spacebar Toggle
         if self.prev_key != key and key == ord(' '):
             self._set_gripper()
@@ -78,38 +78,46 @@ class IPRRobot:
         self.roll = max(-3.14, min(self.roll, 3.14))
 
         self.prev_key = key
-        self._move_p_velocity()
 
-    def _move_p_velocity(self):
-        """Maps Target Pose to Joint Velocities via IK and P-Control."""
         # 1. Coordinate Transform
         x = self.r * math.cos(self.theta)
         y = self.r * math.sin(self.theta)
         target_pos = [x, y, self.z]
+        self.move(target_pos, self.roll)
 
-        # 2. Get Current Joint State
+        print(f"Target Pose -> r: {self.r:.3f}, θ: {math.degrees(self.theta):.1f}°, z: {self.z:.3f}, roll: {math.degrees(self.roll):.1f}°")
+
+    def inverse_kinematics(self, target_pos) -> np.ndarray:
         current_q = [0.0] * len(self.my_chain.links)
         for i in range(len(self.motors)):
             val = self.motors[i].getPositionSensor().getValue()
             current_q[i+1] = val if not math.isnan(val) else 0.0
+        return self.my_chain.inverse_kinematics(target_pos, initial_position=current_q)
+
+    def move(self, target_pos, roll=None):
+        if roll is None:
+            roll = self.roll
+
+        # 1. Get the ACTUAL current joint positions from sensors
+        actual_q = [0.0] * len(self.my_chain.links)
+        for i in range(len(self.motors)):
+            val = self.motors[i].getPositionSensor().getValue()
+            actual_q[i+1] = val if not math.isnan(val) else 0.0
 
         try:
-            # 3. Solve IK
-            target_q = self.my_chain.inverse_kinematics(target_pos, initial_position=current_q)
+            # 2. Solve IK using actual_q as the starting point
+            target_q = self.my_chain.inverse_kinematics(target_pos, initial_position=actual_q)
             
-            # 4. P-Control Loop
+            # 3. P-Control Loop
             for i in range(len(self.motors)):
-                goal = target_q[i+1] if i < 4 else self.roll
-                error = goal - current_q[i+1]
+                goal = target_q[i+1] if i < 4 else roll
                 
-                # Proportional velocity
+                error = goal - actual_q[i+1]
+                
                 p_vel = error * self.KP
-                
-                # Clamp to individual motor's physical limit
                 limit = self.max_velocities[i]
                 final_vel = max(-limit, min(p_vel, limit))
                 
-                # Apply Deadband to prevent jitter
                 if abs(error) < 0.002:
                     self.motors[i].setVelocity(0.0)
                 else:
@@ -126,3 +134,8 @@ class IPRRobot:
             self.left_gripper.setPosition(-self.GRIP_OPEN_ANGLE)
             self.right_gripper.setPosition(self.GRIP_OPEN_ANGLE)
         self.gripper_open = not self.gripper_open
+
+    def get_end_effector_position(self):
+        # result is (x, y, z) of the end-effector in world coordinates
+        return self.my_chain.forward_kinematics([0.0] * len(self.my_chain.links))[:3, 3]
+    
