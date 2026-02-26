@@ -15,7 +15,7 @@ class IPRRobot:
         self.KP = 15.0  # Proportional Gain - Adjust for snappiness
 
         # Pose Variables (The 'Ghost' Target)
-        self.r, self.theta, self.z, self.roll = 0.4, 0.0, 0.2, 0.0
+        self.r, self.theta, self.z, self.roll = 0.0, 0.0, 0.3, 0.0
         self.r_step, self.theta_step, self.z_step, self.roll_step = 0.005, 0.025, 0.005, 0.1
 
         self.prev_key = -1
@@ -46,6 +46,11 @@ class IPRRobot:
         
         self.left_gripper = self.robot.getDevice('gripper::left')
         self.right_gripper = self.robot.getDevice('gripper::right')
+        
+        grip_force_limit = 5.0 # Newtons/Nm - Tune this!
+        
+        self.left_gripper.setAvailableForce(grip_force_limit)
+        self.right_gripper.setAvailableForce(grip_force_limit)
 
         # Setup IK Chain
         base_chain = ikpy.chain.Chain.from_urdf_file(self.urdf_path)
