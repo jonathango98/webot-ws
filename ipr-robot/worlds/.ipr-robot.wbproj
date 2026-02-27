@@ -8,4 +8,4 @@ orthographicViewHeight: 1
 textFiles: 0 "controllers/ball_tracker/ball_tracker.py"
 consoles: Console:All:All
 renderingDevicePerspectives: IPR:camera;0;0.416409;0.253654;0
-renderingDevicePerspectives: IPR:display;1;0.19043;0.656794;0
+renderingDevicePerspectives: IPR:display;1;0.386284;0.574352;0.236939
